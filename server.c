@@ -5,8 +5,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+#include <netdb.h> 
 
 #define PORT            8888
+#define PORT_USB        1234
 #define POSTBUFFERSIZE  512
 #define MAXNAMESIZE     20
 #define MAXANSWERSIZE   512
@@ -21,27 +25,63 @@ struct connection_info_struct
   struct MHD_PostProcessor *postprocessor;
 };
 
-const char *askpage = "<html><body>\
-                       What's your name, Sir?<br>\
-                       <form action=\"/namepost\" method=\"post\">\
-                       <input name=\"name\" type=\"text\"\
-                       <input type=\"submit\" value=\" Send \"></form>\
-                       </body></html>";
 
 //const char *greetingpage =  "<html><body><h1>Welcome, %s!</center></h1></body></html>";
 
 const char *greetingpage = "{\"valor\": \"hola\", \"valor2\": \"%s\", }";
 
-const char *errorpage =
-  "<html><body>This doesn't seem to be right.</body></html>";
-
-
-static int print_out_key (void *cls, enum MHD_ValueKind kind, const char *key,
-               const char *value)
+const char *errorpage = "<html><body>This doesn't seem to be right.</body></html>";
+char buffer[256];
+void error(char *msg)
 {
-  printf ("%s: %s\n", key, value);
-  return MHD_YES;
+    perror(msg);
+    exit(0);
 }
+
+void connection_usb(char *str_json){
+    int sockfd, n;
+
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+
+    
+
+    //portno = atoi(argv[2]);
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+
+    if (sockfd < 0) 
+        error("ERROR opening socket");
+    server = gethostbyname("localhost");
+
+    if (server == NULL) {
+        fprintf(stderr,"ERROR, no such host\n");
+        exit(0);
+    }
+
+    bzero((char *) &serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+    serv_addr.sin_port = htons(PORT_USB);
+
+    if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) 
+        error("ERROR connecting");
+
+    //printf("Please enter the message: ");
+    bzero(buffer,256);
+    //fgets(buffer,255,stdin);
+
+    n = write(sockfd,str_json,strlen(str_json));
+    if (n < 0) 
+         error("ERROR writing to socket");
+    bzero(buffer,256);
+    printf("Mensaje enviado\n");
+    n = read(sockfd,buffer,255);
+    if (n < 0) 
+         error("ERROR reading from socket");
+    printf("%s\n",buffer);
+
+}
+
 
 static int send_page (struct MHD_Connection *connection, const char *page){
     int ret;
@@ -123,6 +163,7 @@ static int answer_to_connection (void *cls, struct MHD_Connection *connection,
         return MHD_YES;
     }
 
+    /* EVENTO SI ES UN GET - LISTAR DISPOSITIVOS Y LEER ARCHIVOS */
     if (0 == strcmp (method, "GET")){
         printf("GET:\n");
 
@@ -138,13 +179,18 @@ static int answer_to_connection (void *cls, struct MHD_Connection *connection,
           free (me);
           return MHD_NO;
         }
+
+        /* SI ES LISTAR DISPOSITIVOS */
         if (0 == strcmp (url, "/listar_dispositivos")){
-          if(val != NULL){
-            printf("parametro: %s\n\n", val);
-          }
+            printf("Se ejecuta listar_dispositivos:\n");
+            connection_usb("{\"solicitud\": \"listar_dispositivos\"}");
+            if(val != NULL){
+                printf("parametro: %s\n\n", val);
+            }
+
         }
+        return send_page (connection, buffer);
         
-        return send_page (connection, askpage);
     }
 
     if (0 == strcmp (method, "POST")){

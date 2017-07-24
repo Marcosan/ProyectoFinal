@@ -25,34 +25,9 @@ while True:
 	if opcionMenu==1:
 		print ("\nListar dispositivos:")
 		requesito = requests.get("http://127.0.0.1:8888/listar_dispositivos")
-		temp = len(requesito.text)
-		cadena1 = requesito.text[:temp - 2]
-		cadena1 = cadena1 + "}"
-		j = json.loads(cadena1)
+		print ("respuesta: " + requesito.json())
 		if requesito.status_code == 200:
-			print("Status: exitoso")
-		if cadena1.find('/dev/sdb') != -1:
-			if j["/dev/sdb"] != None:
-				print("Nodo: " + j["/dev/sdb"]["Nodo"])
-				print("Montaje: " + j["/dev/sdb"]["Montaje"])
-				print("Id Vendor: " + j["/dev/sdb"]["idVendor"])
-				print("Id Product: " + j["/dev/sdb"]["idProduct"])
-				print("")
-		if cadena1.find('/dev/sdc') != -1:
-			if j["/dev/sdc"] != None:
-				print("Nodo: " + j["/dev/sdc"]["Nodo"])
-				print("Montaje: " + j["/dev/sdc"]["Montaje"])
-				print("Id Vendor: " + j["/dev/sdc"]["idVendor"])
-				print("Id Product: " + j["/dev/sdc"]["idProduct"])
-				print("")
-		if cadena1.find('/dev/sdd') != -1:
-			if j["/dev/sdd"] != None:
-				print("Nodo: " + j["/dev/sdd"]["Nodo"])
-				print("Montaje: " + j["/dev/sdd"]["Montaje"])
-				print("Id Vendor: " + j["/dev/sdd"]["idVendor"])
-				print("Id Product: " + j["/dev/sdd"]["idProduct"])
-				print("")
-
+			print("exitoso")
 	elif opcionMenu==2:
 		print ("")
 		input("Has pulsado la opcion 2...\npulsa una tecla para continuar")

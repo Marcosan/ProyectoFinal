@@ -1,7 +1,8 @@
-all: usb #server
+all: usb server
 
 usb: usb.c
-	gcc -Wall usb.c -o usb -ludev
+	gcc -Wall -I/. usb.c libjsmn.a -ludev -o usb
 
-#usb: server.c
-#	gcc -Wall server.c -o server -lmicrohttpd
+server: server.c
+	gcc -Wall server.c -o server -lmicrohttpd
+
