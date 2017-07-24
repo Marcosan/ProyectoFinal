@@ -25,17 +25,51 @@ while True:
 	if opcionMenu==1:
 		print ("\nListar dispositivos:")
 		requesito = requests.get("http://127.0.0.1:8888/listar_dispositivos")
-		print ("respuesta: " + requesito.json())
+		temp = len(requesito.text)
+		cadena1 = requesito.text[:temp - 2]
+		cadena1 = cadena1 + "}"
+		j = json.loads(cadena1)
 		if requesito.status_code == 200:
-			print("exitoso")
+			print("Status: exitoso")
+		if cadena1.find('/dev/sdb') != -1:
+			if j["/dev/sdb"] != None:
+				print("Nodo: " + j["/dev/sdb"]["Nodo"])
+				print("Montaje: " + j["/dev/sdb"]["Montaje"])
+				print("Id Vendor: " + j["/dev/sdb"]["idVendor"])
+				print("Id Product: " + j["/dev/sdb"]["idProduct"])
+				print("")
+		if cadena1.find('/dev/sdc') != -1:
+			if j["/dev/sdc"] != None:
+				print("Nodo: " + j["/dev/sdc"]["Nodo"])
+				print("Montaje: " + j["/dev/sdc"]["Montaje"])
+				print("Id Vendor: " + j["/dev/sdc"]["idVendor"])
+				print("Id Product: " + j["/dev/sdc"]["idProduct"])
+				print("")
+		if cadena1.find('/dev/sdd') != -1:
+			if j["/dev/sdd"] != None:
+				print("Nodo: " + j["/dev/sdd"]["Nodo"])
+				print("Montaje: " + j["/dev/sdd"]["Montaje"])
+				print("Id Vendor: " + j["/dev/sdd"]["idVendor"])
+				print("Id Product: " + j["/dev/sdd"]["idProduct"])
+				print("")
+
 	elif opcionMenu==2:
 		print ("")
 		input("Has pulsado la opcion 2...\npulsa una tecla para continuar")
 	elif opcionMenu==3:
 		print ("\nLeer archivo:")
-		requesito = requests.get("http://127.0.0.1:8888/listar_dispositivos", params = {"name":"774508"})
+		print ("Ingrese")
+		nombre_disp = "/media/dell/MARCO"
+		nombre_archivo = "texto.txt"
+		requesito = requests.get("http://127.0.0.1:8888/leer_archivo", params = {"solicitu":"leer_archivo" , "nombre": nombre_disp, "nombre_archivo": nombre_archivo})
+
+		j = json.loads(requesito.text)
 		if requesito.status_code == 200:
-			print("exitoso")
+			print("Status: exitoso")
+		if requesito.text.find(nombre_disp) != -1:
+			if j["contenido"] != None:
+				print("Contenido del archivo: " + j["contenido"])
+
 	elif opcionMenu==4:
 		print ("")
 		input("Has pulsado la opcion 3...\npulsa una tecla para continuar")
