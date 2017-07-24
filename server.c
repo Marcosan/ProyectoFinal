@@ -31,7 +31,7 @@ struct connection_info_struct
 const char *greetingpage = "{\"valor\": \"hola\", \"valor2\": \"%s\", }";
 
 const char *errorpage = "<html><body>This doesn't seem to be right.</body></html>";
-char buffer[256];
+char buffer[10000];
 void error(char *msg)
 {
     perror(msg);
@@ -67,15 +67,15 @@ void connection_usb(char *str_json){
         error("ERROR connecting");
 
     //printf("Please enter the message: ");
-    bzero(buffer,256);
+    bzero(buffer,10000);
     //fgets(buffer,255,stdin);
 
     n = write(sockfd,str_json,strlen(str_json));
     if (n < 0) 
          error("ERROR writing to socket");
-    bzero(buffer,256);
+    bzero(buffer,10000);
     printf("Mensaje enviado\n");
-    n = read(sockfd,buffer,255);
+    n = read(sockfd,buffer,10000);
     if (n < 0) 
          error("ERROR reading from socket");
     printf("%s\n",buffer);
@@ -133,6 +133,8 @@ static int answer_to_connection (void *cls, struct MHD_Connection *connection,
     printf("%s\n", url);
     const char *fmt = cls;
     const char *val;
+    const char *nombre;
+    const char *nombre_archivo;
     char *me;
     struct MHD_Response *response;
     if (NULL == *con_cls){
@@ -180,6 +182,7 @@ static int answer_to_connection (void *cls, struct MHD_Connection *connection,
           return MHD_NO;
         }
 
+
         /* SI ES LISTAR DISPOSITIVOS */
         if (0 == strcmp (url, "/listar_dispositivos")){
             printf("Se ejecuta listar_dispositivos:\n");
@@ -189,6 +192,41 @@ static int answer_to_connection (void *cls, struct MHD_Connection *connection,
             }
 
         }
+
+
+        /* SI ES LEER ARCHIVO */
+        if (0 == strcmp (url, "/leer_archivo")){
+            printf("Se ejecuta leer_archivo:\n");
+
+            *con_cls = NULL;                  /* reset when done */
+            nombre = MHD_lookup_connection_value (connection, MHD_GET_ARGUMENT_KIND, "nombre");
+            nombre_archivo = MHD_lookup_connection_value (connection, MHD_GET_ARGUMENT_KIND, "nombre_archivo");
+            me = malloc (snprintf (NULL, 0, fmt, "name", val) + 1);
+            if (me == NULL)
+              return MHD_NO;
+            sprintf (me, fmt, "name", val);
+            response = MHD_create_response_from_buffer (strlen (me), me,
+                          MHD_RESPMEM_MUST_FREE);
+            if (response == NULL){
+              free (me);
+              return MHD_NO;
+            }
+            char *json_solicitud;
+            json_solicitud = (char *) malloc(sizeof(json_solicitud)*10000);
+            strcpy(json_solicitud, "{\"solicitud\": \"leer_archivo\",\"nombre\":\"");
+
+            strcat(json_solicitud, nombre);
+            strcat(json_solicitud, "\",\"nombre_archivo\":\"");
+            strcat(json_solicitud, nombre_archivo);
+            strcat(json_solicitud, "\"}");
+            printf("%s\n", json_solicitud);
+            connection_usb(json_solicitud);
+            if(val != NULL){
+                printf("parametro: %s\n\n", val);
+            }
+
+        }
+        
         return send_page (connection, buffer);
         
     }
