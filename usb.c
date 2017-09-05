@@ -7,23 +7,94 @@
 #include <errno.h>
 #include <mntent.h>	/* for getmntent(), et al. */
 #include <unistd.h>	/* for getopt() */
+#include <sys/types.h> 
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include "jsmn.h"
 
-#define BLOCK_SIZE 512
+
+#define BLOCK_SIZE 1000
+#define TAM_RESULT 1000
+#define PORT 1234
 
 void process(const char *filename);
 void print_mount(const struct mntent *fs);
 
 char *myname;
+char *buff_response;
+char buffer[256] = "";
+int sockfd, newsockfd, portno;
+socklen_t clilen;
+struct sockaddr_in serv_addr, cli_addr;
+int n_read_socket;
+int r;
+jsmn_parser p;
+jsmntok_t t[BLOCK_SIZE];
+
+static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
+	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
+			strncmp(json + tok->start, s, tok->end - tok->start) == 0) {
+		return 0;
+	}
+	return -1;
+}
+
+void error(char *msg){
+    perror(msg);
+    //exit(1);
+}
+
+void connection_socket(){
+	listen(sockfd,5);
+	clilen = sizeof(cli_addr);
+	newsockfd = accept(sockfd, (struct sockaddr *) &cli_addr, &clilen);
+	if (newsockfd < 0) 
+		error("ERROR on accept");
+
+	bzero(buffer,1000);
+
+	n_read_socket = read(newsockfd,buffer,1000);
+
+	if (n_read_socket < 0) error("ERROR reading from socket");
+
+	
+}
 
 /* main --- process options */
+/*
+[{"Fruta": {"Nombre":"Manzana","Cantidad":10}}, {"Verdura": {"Nombre":"Lechuga","Cantidad":80}}]
+*/
+char * json_token_tostr(char *js, jsmntok_t *t)
+{
+    js[t->end] = '\0';
+    return js + t->start;
+}
 
-void getMounts(char *devNode, char *devName, char *idVendor, char *idProduct){
+int getMounts(const char *devNode,const  char *devName,const  char *idVendor,const  char *idProduct){
 	char *filename = "/etc/mtab";	/* default file to read */
 	char *nameUsb = "";
-	char *mountAdr;
+	//char *mountAdr;
 
 	FILE *fp;
 	struct mntent *fs;
+
+	
+	//int i;
+	
+	
+	char *solicitud;
+
+	
+	if (r < 0) {
+		printf("Failed to parse JSON: %d\n", r);
+		return 1;
+	}
+
+	/* Assume the top-level element is an object */
+	if (r < 1 || t[0].type != JSMN_OBJECT) {
+		printf("Object expected\n");
+		return 1;
+	}
 
 	fp = setmntent(filename, "r");	/* read only */
 	if (fp == NULL) {
@@ -32,20 +103,56 @@ void getMounts(char *devNode, char *devName, char *idVendor, char *idProduct){
 		exit(1);
 	}
 
-	while ((fs = getmntent(fp)) != NULL){
-		if(strstr(fs->mnt_fsname, devName) != NULL && strstr(fs->mnt_fsname, "sda") == NULL) {
-    		printf("Nodo: %s\nPunto montaje: %s\nIdVendor: %s\nIdProduct: %s\nNombre: %s\n\n",
-				devNode,
-				//fs->mnt_fsname,
-				fs->mnt_dir,
-				idVendor,
-				idProduct,
-				nameUsb);
+	/* PARSEAR DATOS */
+	for (int i = 1; i < r; i++) {
+		if (jsoneq(buffer, &t[i], "solicitud") == 0) {
+			/* We may use strndup() to fetch string value */
+			printf("- User: %.*s\n", t[i+1].end-t[i+1].start,
+					buffer + t[i+1].start);
+			solicitud = json_token_tostr(buffer, &t[i+1]);
+			printf("%s\n", solicitud);
+			printf("%d\n", r);
+			i++;
 		}
-		
 	}
-
+	
+    if (0 == strcmp (solicitud, "listar_dispositivos")){  //Listar dispositivos
+	    while ((fs = getmntent(fp)) != NULL){
+			if(strstr(fs->mnt_fsname, devName) != NULL && strstr(fs->mnt_fsname, "sda") == NULL) {
+	    	//if(strstr(fs->mnt_fsname, devName) != NULL) {
+	    		printf("condicion de listar_dispositivos\n");
+	    		if (idVendor == NULL || idProduct == NULL){
+	    			idProduct = "no hay";
+	    			idVendor = "no hay";
+	    		}
+	    		printf("Nodo: %s\nPunto montaje: %s\nIdVendor: %s\nIdProduct: %s\nNombre: %s\n\n",
+					devNode,
+					//fs->mnt_fsname,
+					fs->mnt_dir,
+					idVendor,
+					idProduct,
+					nameUsb);
+	    		strcat(buff_response, "{\"");
+	    		strcat(buff_response, devNode);
+	    		strcat(buff_response, "\":{\"Nodo\":\"");
+	    		strcat(buff_response, devNode);
+	    		strcat(buff_response, "\",\"Montaje\":\"");
+	    		strcat(buff_response, fs->mnt_dir);
+	    		strcat(buff_response, "\",\"idVendor\":\"");
+	    		strcat(buff_response, idVendor);
+	    		strcat(buff_response, "\",\"idProduct\":\"");
+	    		strcat(buff_response, idProduct);
+	    		strcat(buff_response, "\"}},");
+			}
+		}
+		//if (newsockfd != 0)
+		
+		return 1;
+	}
+	
 	endmntent(fp);
+
+	return 0;
 }
 
 int main(){
@@ -54,13 +161,30 @@ int main(){
 	struct udev_enumerate *enumerate;
 	struct udev_list_entry *devices, *dev_list_entry;
 	struct udev_device* usb;
-	char *idVendor;
-	char *idProduct;
-	char *devNode;
-	char *devName;
+	const char *idVendor;
+	const char *idProduct;
+	const char *devNode;
+	const char *devName;
+
+	/* CONNECTION SOCKET */
+	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	if (sockfd < 0) 
+		error("ERROR opening socket");
+
+	bzero((char *) &serv_addr, sizeof(serv_addr));
+
+	//portno = PORT;//atoi(argv[1]);
+	serv_addr.sin_family = AF_INET;
+	serv_addr.sin_addr.s_addr = INADDR_ANY;
+	serv_addr.sin_port = htons(PORT);
+
+	if (bind(sockfd, (struct sockaddr *) &serv_addr, sizeof(serv_addr)) < 0)
+		error("ERROR on binding");
 	
 	while(1){
 		/* create udev object */
+		buff_response = (char *) malloc(sizeof(buff_response)*TAM_RESULT);
+		strcpy(buff_response, "[");
 		udev = udev_new();
 		if (!udev) {
 			fprintf(stderr, "Cannot create udev context.\n");
@@ -84,6 +208,11 @@ int main(){
 			return 1;
 		}
 
+		connection_socket();
+
+		printf("Here is the message: %s\n",buffer);
+		jsmn_init(&p);
+		r = jsmn_parse(&p, buffer, strlen(buffer), t, sizeof(t)/sizeof(t[0]));
 		udev_list_entry_foreach(dev_list_entry, devices) {
 			const char *path;//, *tmp;
 			//unsigned long long disk_size = 0;
@@ -101,18 +230,22 @@ int main(){
 				idVendor = udev_device_get_sysattr_value(usb, "idVendor");
 				idProduct = udev_device_get_sysattr_value(usb, "idProduct");
 				getMounts(devNode, devName, idVendor, idProduct);
+				
 			}
 
 			/* free dev */
 			udev_device_unref(dev);
 		}
+		strcat(buff_response, "]");
+		n_read_socket = write(newsockfd,buff_response,sizeof(buff_response)*TAM_RESULT);
+
+		if (n_read_socket < 0) error("ERROR writing to socket");
 		/* free enumerate */
 		udev_enumerate_unref(enumerate);
 		/* free udev */
 		udev_unref(udev);
 
-		
-		sleep(1);
+		free(buff_response);
 	}
 	return 0;
 }
