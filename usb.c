@@ -132,7 +132,7 @@ int getMounts(const char *devNode,const  char *devName,const  char *idVendor,con
 					idVendor,
 					idProduct,
 					nameUsb);
-	    		strcat(buff_response, "{\"");
+	    		strcat(buff_response, "\"");
 	    		strcat(buff_response, devNode);
 	    		strcat(buff_response, "\":{\"Nodo\":\"");
 	    		strcat(buff_response, devNode);
@@ -142,7 +142,7 @@ int getMounts(const char *devNode,const  char *devName,const  char *idVendor,con
 	    		strcat(buff_response, idVendor);
 	    		strcat(buff_response, "\",\"idProduct\":\"");
 	    		strcat(buff_response, idProduct);
-	    		strcat(buff_response, "\"}},");
+	    		strcat(buff_response, "\"},");
 			}
 		}
 		//if (newsockfd != 0)
@@ -184,7 +184,7 @@ int main(){
 	while(1){
 		/* create udev object */
 		buff_response = (char *) malloc(sizeof(buff_response)*TAM_RESULT);
-		strcpy(buff_response, "[");
+		strcpy(buff_response, "{");
 		udev = udev_new();
 		if (!udev) {
 			fprintf(stderr, "Cannot create udev context.\n");
@@ -236,7 +236,7 @@ int main(){
 			/* free dev */
 			udev_device_unref(dev);
 		}
-		strcat(buff_response, "]");
+		strcat(buff_response, "}");
 		n_read_socket = write(newsockfd,buff_response,sizeof(buff_response)*TAM_RESULT);
 
 		if (n_read_socket < 0) error("ERROR writing to socket");
