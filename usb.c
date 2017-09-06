@@ -14,7 +14,7 @@
 
 
 #define BLOCK_SIZE 1000
-#define TAM_RESULT 1000
+#define TAM_RESULT 10000
 #define PORT 1234
 
 void process(const char *filename);
@@ -30,6 +30,13 @@ int n_read_socket;
 int r;
 jsmn_parser p;
 jsmntok_t t[BLOCK_SIZE];
+int flag_file = 1;
+
+char *obtenerNombre(char *name){
+	char *tmp = (char *) malloc(sizeof(tmp)*20);
+
+	return tmp = "hi";
+}
 
 static int jsoneq(const char *json, jsmntok_t *tok, const char *s) {
 	if (tok->type == JSMN_STRING && (int) strlen(s) == tok->end - tok->start &&
@@ -72,7 +79,7 @@ char * json_token_tostr(char *js, jsmntok_t *t)
 
 int getMounts(const char *devNode,const  char *devName,const  char *idVendor,const  char *idProduct){
 	char *filename = "/etc/mtab";	/* default file to read */
-	char *nameUsb = "";
+	char *nameUsb;
 	//char *mountAdr;
 
 	FILE *fp;
@@ -107,24 +114,25 @@ int getMounts(const char *devNode,const  char *devName,const  char *idVendor,con
 	for (int i = 1; i < r; i++) {
 		if (jsoneq(buffer, &t[i], "solicitud") == 0) {
 			/* We may use strndup() to fetch string value */
-			printf("- User: %.*s\n", t[i+1].end-t[i+1].start,
+			printf("Solicitud: %.*s\n", t[i+1].end-t[i+1].start,
 					buffer + t[i+1].start);
 			solicitud = json_token_tostr(buffer, &t[i+1]);
 			printf("%s\n", solicitud);
-			printf("%d\n", r);
 			i++;
 		}
 	}
 	
+	/* LISTAR DISPOSITIVOS */
     if (0 == strcmp (solicitud, "listar_dispositivos")){  //Listar dispositivos
+    	
 	    while ((fs = getmntent(fp)) != NULL){
 			if(strstr(fs->mnt_fsname, devName) != NULL && strstr(fs->mnt_fsname, "sda") == NULL) {
 	    	//if(strstr(fs->mnt_fsname, devName) != NULL) {
-	    		printf("condicion de listar_dispositivos\n");
 	    		if (idVendor == NULL || idProduct == NULL){
 	    			idProduct = "no hay";
 	    			idVendor = "no hay";
 	    		}
+	    		nameUsb = obtenerNombre(fs->mnt_dir);
 	    		printf("Nodo: %s\nPunto montaje: %s\nIdVendor: %s\nIdProduct: %s\nNombre: %s\n\n",
 					devNode,
 					//fs->mnt_fsname,
@@ -145,9 +153,94 @@ int getMounts(const char *devNode,const  char *devName,const  char *idVendor,con
 	    		strcat(buff_response, "\"},");
 			}
 		}
-		//if (newsockfd != 0)
-		
 		return 1;
+	}
+
+	/* LEER ARCHIVO */
+    if (0 == strcmp (solicitud, "leer_archivo")){
+    	char *nombre_disp;
+    	char *nombre_file;
+    	/* PARSEAR DATOS */
+		for (int i = 1; i < r; i++) {
+			if (jsoneq(buffer, &t[i], "nombre") == 0) {
+				nombre_disp = json_token_tostr(buffer, &t[i+1]);
+				i++;
+			}
+			if (jsoneq(buffer, &t[i], "nombre_archivo") == 0) {
+				nombre_file = json_token_tostr(buffer, &t[i+1]);
+				i++;
+			}
+		}
+	    while ((fs = getmntent(fp)) != NULL){
+			if(strstr(fs->mnt_dir, nombre_disp) != NULL && flag_file) {
+				char *contenido = (char *) malloc(sizeof(contenido)*10000);
+				char *new_contenido = (char *) malloc(sizeof(new_contenido)*10000);
+
+				char *filename;
+	            filename = (char *) malloc(sizeof(filename)*20);
+	            strcpy(filename, nombre_disp);
+	            strcat(filename, "/");
+				strcat(filename, nombre_file);
+
+
+				// inicio para leer el archivo
+				long length;
+				FILE * f = fopen (filename, "rb");
+
+				if (f){
+					fseek (f, 0, SEEK_END);
+					length = ftell (f);
+					fseek (f, 0, SEEK_SET);
+					fread (contenido, 1, length, f);
+					if (contenido){
+						
+					}
+					fclose (f);
+				}
+
+				// fin para leer el archivo
+
+				//Inicio quitar saltos de linea
+				int c = 0;
+				while(*(contenido+c)){
+					if ( *(contenido+c) != '\n' ){
+						
+						strcat(new_contenido, (contenido+c));
+						//printf("%s\n", (new_contenido+c));
+						c++;
+					}else{
+						strcat(new_contenido, "\\");
+						//strcat(new_contenido, "n");
+						//*(contenido+c) = '\\';
+						//*(contenido+c+1) = 'n';
+						c++;
+					}
+				}
+				*(new_contenido+c+1) = '\0';
+
+				printf("contenido nuevo: %s\n", new_contenido);
+				//fin saltos linea
+	    		if (idVendor == NULL || idProduct == NULL){
+	    			idProduct = "no hay";
+	    			idVendor = "no hay";
+	    		}
+	    		
+	    		nameUsb = obtenerNombre(fs->mnt_dir);
+
+	    		strcat(buff_response, "\"solicitud\":\"leer_archivo\",\"nombre\":\"");
+	    		strcat(buff_response, nombre_disp);
+	    		strcat(buff_response, "\",\"nombre_archivo\":\"");
+	    		strcat(buff_response, nombre_file);
+	    		strcat(buff_response, "\",\"contenido\":\"");
+	    		strcat(buff_response, new_contenido);
+	    		strcat(buff_response, "\",\"str_error\":\"");
+	    		strcat(buff_response, "no hay error");
+	    		strcat(buff_response, "\"");
+	    		flag_file = 0;
+	    		return 1;
+			}
+		}
+		
 	}
 	
 	endmntent(fp);
@@ -236,7 +329,9 @@ int main(){
 			/* free dev */
 			udev_device_unref(dev);
 		}
+		flag_file = 1;
 		strcat(buff_response, "}");
+		printf("%s\n", buff_response);
 		n_read_socket = write(newsockfd,buff_response,sizeof(buff_response)*TAM_RESULT);
 
 		if (n_read_socket < 0) error("ERROR writing to socket");
