@@ -209,16 +209,16 @@ int getMounts(const char *devNode,const  char *devName,const  char *idVendor,con
 						//printf("%s\n", (new_contenido+c));
 						c++;
 					}else{
-						strcat(new_contenido, "\\");
+						//strcat(new_contenido, "{");
 						//strcat(new_contenido, "n");
-						//*(contenido+c) = '\\';
+						*(contenido+c) = ' ';
 						//*(contenido+c+1) = 'n';
 						c++;
 					}
 				}
-				*(new_contenido+c+1) = '\0';
+				*(contenido+c+1) = '\0';
 
-				printf("contenido nuevo: %s\n", new_contenido);
+				//printf("contenido nuevo: %s\n", new_contenido);
 				//fin saltos linea
 	    		if (idVendor == NULL || idProduct == NULL){
 	    			idProduct = "no hay";
@@ -232,7 +232,7 @@ int getMounts(const char *devNode,const  char *devName,const  char *idVendor,con
 	    		strcat(buff_response, "\",\"nombre_archivo\":\"");
 	    		strcat(buff_response, nombre_file);
 	    		strcat(buff_response, "\",\"contenido\":\"");
-	    		strcat(buff_response, new_contenido);
+	    		strcat(buff_response, contenido);
 	    		strcat(buff_response, "\",\"str_error\":\"");
 	    		strcat(buff_response, "no hay error");
 	    		strcat(buff_response, "\"");
