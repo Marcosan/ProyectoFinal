@@ -31,6 +31,11 @@ Comandos para la intalacion de las librerias:
 Ademas se adjunta el achivo make con el cual se creara los archivos ejecutables necesarios, esto se podra realizar con el comando
   * make
   
+ ### Modo de uso
+ primero se debera correr el ejecutable ./usb despues el ejecutable ./server y con python cliente.py se procedera a elegir la opcion 1 o 3
+ 
+ PROBADO EN LA DISTRIBUCION LINUX UBUNTU 16
+  
   ### Desarrolladores:
   
   * Diego Robalino  diegorobalino16@gmail.com
