@@ -31,3 +31,7 @@ Comandos para la intalacion de las librerias:
 Ademas se adjunta el achivo make con el cual se creara los archivos ejecutables necesarios, esto se podra realizar con el comando
   * make
   
+  ### Desarrolladores:
+  
+  * Diego Robalino  diegorobalino16@gmail.com
+  * Marco Mendoza   mmendozaquelal@gmail.com
