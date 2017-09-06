@@ -54,8 +54,14 @@ while True:
 				print("")
 
 	elif opcionMenu==2:
-		d = {"solicitu":"nombrar_dispositivo" , "nombre": nombre_disp, "nombre_archivo": nombre_archivo}
-		res = requests.post("http://127.0.0.1:8888/nombrar_dispositivo", data=json.dumps(d))
+		print ("\nNombrar dispositivo:")
+		print ("Ingrese nodo del dispositivo (ejm: /dev/sdb): ")
+		#nombre_nodo = raw_input() #nombre_disp = "/media/dell/MARCO"
+		print ("Ingrese nuevo nombre del dispositivo: ")
+		#nombre_disp = raw_input() #nombre_archivo = "texto.txt"
+		d = {"solicitud":"nombrar_dispositivo" , "nodo": "/dev/sdb", "nombre": "nuevo"}
+		#print(json.dumps(d))
+		res = requests.post("http://127.0.0.1:8888/nombrar_dispositivo", data=d)
 
 
 	elif opcionMenu==3:
@@ -64,7 +70,7 @@ while True:
 		nombre_disp = raw_input() #nombre_disp = "/media/dell/MARCO"
 		print ("Ingrese nombre de archivo (ejm: texto.txt): ")
 		nombre_archivo = raw_input() #nombre_archivo = "texto.txt"
-		requesito = requests.get("http://127.0.0.1:8888/leer_archivo", params = {"solicitu":"leer_archivo" , "nombre": nombre_disp, "nombre_archivo": nombre_archivo})
+		requesito = requests.get("http://127.0.0.1:8888/leer_archivo", params = {"solicitud":"leer_archivo" , "nombre": nombre_disp, "nombre_archivo": nombre_archivo})
 
 		j = json.loads(requesito.text)
 		if requesito.status_code == 200:

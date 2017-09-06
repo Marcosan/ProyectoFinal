@@ -69,7 +69,7 @@ void connection_usb(char *str_json){
     //printf("Please enter the message: ");
     bzero(buffer,10000);
     //fgets(buffer,255,stdin);
-
+    //printf("%s\n", str_json);
     n = write(sockfd,str_json,strlen(str_json));
     if (n < 0) 
          error("ERROR writing to socket");
@@ -99,22 +99,50 @@ static int send_page (struct MHD_Connection *connection, const char *page){
     return ret;
 }
 
-
+const char *solicitud_post = "";
+char *nodo;
+    char *new_name;
 static int iterate_post (void *coninfo_cls, enum MHD_ValueKind kind, const char *key,
               const char *filename, const char *content_type,
               const char *transfer_encoding, const char *data, uint64_t off,
               size_t size){
+
     struct connection_info_struct *con_info = coninfo_cls;
-
-    if (0 == strcmp (key, "name")){
+    
+    if (0 == strcmp (key, "solicitud")){
         if ((size > 0) && (size <= MAXNAMESIZE)){
-            char *answerstring;
-            answerstring = malloc (MAXANSWERSIZE);
-            if (!answerstring)
-                return MHD_NO;
+            solicitud_post = (char *) malloc(sizeof(solicitud_post)*20);
+            solicitud_post = data;
+        }
+    }
+    if (0 == strcmp (key, "nombre") && new_name == NULL){
+        new_name = (char *) malloc(sizeof(new_name)*20);
+        strcpy(new_name, data);
+    }
+    if (0 == strcmp (key, "nodo") && nodo == NULL){
+        nodo = (char *) malloc(sizeof(nodo)*20);
+        strcpy(nodo, data);
 
-            snprintf (answerstring, MAXANSWERSIZE, greetingpage, data);
-            con_info->answerstring = answerstring;
+    }
+    if (0 == strcmp (solicitud_post, "nombrar_dispositivo") && nodo != NULL && new_name != NULL){
+        if ((size > 0) && (size <= MAXNAMESIZE)){
+            //char *answerstring;
+            //answerstring = malloc (MAXANSWERSIZE);
+            char *json_solicitud;
+            json_solicitud = (char *) malloc(sizeof(json_solicitud)*10000);
+            strcpy(json_solicitud, "{\"solicitud\": \"nombrar_dispositivo\",\"nodo\":\"");
+
+            strcat(json_solicitud, nodo);
+            strcat(json_solicitud, "\",\"nombre\":\"");
+            strcat(json_solicitud, new_name);
+            strcat(json_solicitud, "\"}");
+            //printf("%s\n", json_solicitud);
+            connection_usb(json_solicitud);
+            if (!json_solicitud)
+                return MHD_NO;
+            //printf("%s\n", data);
+            //snprintf (answerstring, MAXANSWERSIZE, greetingpage, data);
+            con_info->answerstring = buffer;
         }
         else
             con_info->answerstring = NULL;
@@ -147,6 +175,7 @@ static int answer_to_connection (void *cls, struct MHD_Connection *connection,
         con_info->answerstring = NULL;
 
         if (0 == strcmp (method, "POST")){
+
             con_info->postprocessor = MHD_create_post_processor (connection, POSTBUFFERSIZE,
                                      iterate_post, (void *) con_info);
 
@@ -244,7 +273,7 @@ static int answer_to_connection (void *cls, struct MHD_Connection *connection,
             return MHD_YES;
         }
         else if (NULL != con_info->answerstring){
-            printf("%s\n", con_info->answerstring);
+            printf("answer: %s\n", con_info->answerstring);
             return send_page (connection, con_info->answerstring);
         }
     }
