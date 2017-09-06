@@ -54,16 +54,16 @@ while True:
 				print("")
 
 	elif opcionMenu==2:
-		print ("")
-		input("Has pulsado la opcion 2...\npulsa una tecla para continuar")
+		d = {"solicitu":"nombrar_dispositivo" , "nombre": nombre_disp, "nombre_archivo": nombre_archivo}
+		res = requests.post("http://127.0.0.1:8888/nombrar_dispositivo", data=json.dumps(d))
+
+
 	elif opcionMenu==3:
 		print ("\nLeer archivo:")
 		print ("Ingrese ruta del dispositivo (ejm: /media/user/USB): ")
-		#nombre_disp = input()
-		nombre_disp = "/media/dell/MARCO"
+		nombre_disp = raw_input() #nombre_disp = "/media/dell/MARCO"
 		print ("Ingrese nombre de archivo (ejm: texto.txt): ")
-		#nombre_archivo = input()
-		nombre_archivo = "texto.txt"
+		nombre_archivo = raw_input() #nombre_archivo = "texto.txt"
 		requesito = requests.get("http://127.0.0.1:8888/leer_archivo", params = {"solicitu":"leer_archivo" , "nombre": nombre_disp, "nombre_archivo": nombre_archivo})
 
 		j = json.loads(requesito.text)
